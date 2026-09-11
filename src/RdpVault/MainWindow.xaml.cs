@@ -1,7 +1,9 @@
-using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using RdpVault.Models;
+using RdpVault.Services;
 
 namespace RdpVault;
 
@@ -12,7 +14,7 @@ public class TreeGroup
 {
     public string Name { get; init; } = string.Empty;
     public string Icon { get; init; } = "📁";
-    public List<ServerNode> Servers { get; init; } = [];
+    public ObservableCollection<ServerNode> Servers { get; init; } = [];
 }
 
 /// <summary>
@@ -29,54 +31,80 @@ public class ServerNode
 
 public partial class MainWindow : Window
 {
+    private readonly JsonStorageService _storage = new();
+    private AppData _appData = new();
+    private ObservableCollection<TreeGroup> _groups = [];
+
     public MainWindow()
     {
         InitializeComponent();
-        ServerTree.ItemsSource = BuildMockTree();
+
+        _appData = _storage.Load();
+        if (_appData.Groups.Count == 0 && _appData.Servers.Count == 0)
+        {
+            _appData = BuildSeedData();
+            _storage.Save(_appData);
+        }
+
+        RefreshTree();
     }
 
-    private static List<TreeGroup> BuildMockTree()
+    private static AppData BuildSeedData()
     {
         var production = new Group { Name = "Production" };
         var development = new Group { Name = "Development" };
 
-        var web01 = new ServerEntry { Name = "Web 01", Host = "10.10.1.10", Username = "dusan", Domain = "CORP", GroupId = production.Id };
-        var web02 = new ServerEntry { Name = "Web 02", Host = "10.10.1.11", Username = "dusan", Domain = "CORP", GroupId = production.Id };
-        var db01 = new ServerEntry { Name = "DB 01", Host = "10.10.1.50", Username = "dusan", Domain = "CORP", GroupId = production.Id, IsFavorite = true };
-
-        var dev01 = new ServerEntry { Name = "Dev 01", Host = "10.10.2.10", Username = "dusan", GroupId = development.Id, IsFavorite = true };
-        var dev02 = new ServerEntry { Name = "Dev 02", Host = "10.10.2.11", Username = "dusan", GroupId = development.Id };
-
-        var productionNode = new TreeGroup
+        return new AppData
         {
-            Name = production.Name,
+            Groups = [production, development],
             Servers =
             [
-                new ServerNode { Server = web01, GroupName = production.Name },
-                new ServerNode { Server = web02, GroupName = production.Name },
-                new ServerNode { Server = db01, GroupName = production.Name },
+                new ServerEntry { Name = "Web 01", Host = "10.10.1.10", Username = "dusan", Domain = "CORP", GroupId = production.Id },
+                new ServerEntry { Name = "Web 02", Host = "10.10.1.11", Username = "dusan", Domain = "CORP", GroupId = production.Id },
+                new ServerEntry { Name = "DB 01", Host = "10.10.1.50", Username = "dusan", Domain = "CORP", GroupId = production.Id, IsFavorite = true },
+                new ServerEntry { Name = "Dev 01", Host = "10.10.2.10", Username = "dusan", GroupId = development.Id, IsFavorite = true },
+                new ServerEntry { Name = "Dev 02", Host = "10.10.2.11", Username = "dusan", GroupId = development.Id },
             ],
         };
+    }
 
-        var developmentNode = new TreeGroup
+    private void RefreshTree()
+    {
+        var previouslyExpanded = _groups.Where(g => IsExpanded(g)).Select(g => g.Name).ToHashSet();
+
+        var groupNodes = _appData.Groups.Select(group => new TreeGroup
         {
-            Name = development.Name,
-            Servers =
-            [
-                new ServerNode { Server = dev01, GroupName = development.Name },
-                new ServerNode { Server = dev02, GroupName = development.Name },
-            ],
-        };
+            Name = group.Name,
+            Servers = new ObservableCollection<ServerNode>(
+                _appData.Servers
+                    .Where(s => s.GroupId == group.Id)
+                    .Select(s => new ServerNode { Server = s, GroupName = group.Name })),
+        }).ToList();
 
-        List<ServerNode> allServers = [.. productionNode.Servers, .. developmentNode.Servers];
         var favoritesNode = new TreeGroup
         {
             Name = "Favorites",
             Icon = "⭐",
-            Servers = allServers.FindAll(s => s.Server.IsFavorite),
+            Servers = new ObservableCollection<ServerNode>(
+                groupNodes.SelectMany(g => g.Servers).Where(n => n.Server.IsFavorite)),
         };
 
-        return [favoritesNode, productionNode, developmentNode];
+        _groups = [favoritesNode, .. groupNodes];
+        ServerTree.ItemsSource = _groups;
+        ServerTree.UpdateLayout();
+
+        foreach (var name in previouslyExpanded)
+        {
+            if (ServerTree.ItemContainerGenerator.ContainerFromItem(_groups.FirstOrDefault(g => g.Name == name)) is TreeViewItem item)
+            {
+                item.IsExpanded = true;
+            }
+        }
+    }
+
+    private bool IsExpanded(TreeGroup group)
+    {
+        return ServerTree.ItemContainerGenerator.ContainerFromItem(group) is TreeViewItem { IsExpanded: true };
     }
 
     private void ServerTree_SelectedItemChanged(object sender, RoutedPropertyChangedEventArgs<object> e)
@@ -98,5 +126,28 @@ public partial class MainWindow : Window
     private void SearchBox_TextChanged(object sender, TextChangedEventArgs e)
     {
         SearchPlaceholder.Visibility = string.IsNullOrEmpty(SearchBox.Text) ? Visibility.Visible : Visibility.Collapsed;
+    }
+
+    private void AddServerButton_Click(object sender, RoutedEventArgs e)
+    {
+        var existingGroupNames = _appData.Groups.Select(g => g.Name);
+        var dialog = new AddServerWindow(existingGroupNames) { Owner = this };
+        if (dialog.ShowDialog() != true || dialog.Result is not { } server)
+        {
+            return;
+        }
+
+        var group = _appData.Groups.FirstOrDefault(g => g.Name == dialog.GroupName);
+        if (group is null)
+        {
+            group = new Group { Name = dialog.GroupName };
+            _appData.Groups.Add(group);
+        }
+
+        server.GroupId = group.Id;
+        _appData.Servers.Add(server);
+        _storage.Save(_appData);
+
+        RefreshTree();
     }
 }
