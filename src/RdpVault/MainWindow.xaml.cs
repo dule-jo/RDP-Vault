@@ -72,6 +72,21 @@ public partial class MainWindow : Window
     {
         var previouslyExpanded = _groups.Where(g => IsExpanded(g)).Select(g => g.Name).ToHashSet();
 
+        // Deselect the current item in the OLD tree before rebuilding. Every server node below
+        // is rebuilt fresh, so if ItemsSource is swapped while something is still selected, WPF
+        // treats the selection as orphaned and silently re-homes it onto the first top-level
+        // container instead of clearing it, leaving a stray highlight with no matching detail panel.
+        if (ServerTree.SelectedItem is ServerNode currentlySelected)
+        {
+            var oldGroup = _groups.FirstOrDefault(g => g.Name != "Favorites" && g.Servers.Contains(currentlySelected));
+            if (oldGroup is not null &&
+                ServerTree.ItemContainerGenerator.ContainerFromItem(oldGroup) is TreeViewItem oldGroupItem &&
+                oldGroupItem.ItemContainerGenerator.ContainerFromItem(currentlySelected) is TreeViewItem oldLeafItem)
+            {
+                oldLeafItem.IsSelected = false;
+            }
+        }
+
         var groupNodes = _appData.Groups.Select(group => new TreeGroup
         {
             Name = group.Name,
@@ -130,8 +145,21 @@ public partial class MainWindow : Window
 
     private void AddServerButton_Click(object sender, RoutedEventArgs e)
     {
+        OpenAddServerDialog();
+    }
+
+    private void CopyButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (DetailContent.DataContext is ServerNode node)
+        {
+            OpenAddServerDialog(node.Server, node.GroupName);
+        }
+    }
+
+    private void OpenAddServerDialog(ServerEntry? copyFrom = null, string? copyFromGroupName = null)
+    {
         var existingGroupNames = _appData.Groups.Select(g => g.Name);
-        var dialog = new AddServerWindow(existingGroupNames) { Owner = this };
+        var dialog = new AddServerWindow(existingGroupNames, copyFrom, copyFromGroupName) { Owner = this };
         if (dialog.ShowDialog() != true || dialog.Result is not { } server)
         {
             return;
@@ -147,6 +175,73 @@ public partial class MainWindow : Window
         server.GroupId = group.Id;
         _appData.Servers.Add(server);
         _storage.Save(_appData);
+
+        RefreshTree();
+    }
+
+    private void EditButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (DetailContent.DataContext is not ServerNode node)
+        {
+            return;
+        }
+
+        var existingGroupNames = _appData.Groups.Select(g => g.Name);
+        var dialog = new AddServerWindow(existingGroupNames, node.Server, node.GroupName, isEditMode: true) { Owner = this };
+        if (dialog.ShowDialog() != true || dialog.Result is not { } updated)
+        {
+            return;
+        }
+
+        var group = _appData.Groups.FirstOrDefault(g => g.Name == dialog.GroupName);
+        if (group is null)
+        {
+            group = new Group { Name = dialog.GroupName };
+            _appData.Groups.Add(group);
+        }
+        updated.GroupId = group.Id;
+
+        var index = _appData.Servers.FindIndex(s => s.Id == updated.Id);
+        if (index >= 0)
+        {
+            _appData.Servers[index] = updated;
+        }
+
+        _storage.Save(_appData);
+
+        DetailContent.DataContext = null;
+        DetailContent.Visibility = Visibility.Collapsed;
+        EmptyState.Visibility = Visibility.Visible;
+
+        RefreshTree();
+    }
+
+    private void DeleteButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (DetailContent.DataContext is not ServerNode node)
+        {
+            return;
+        }
+
+        var result = MessageBox.Show(
+            this,
+            $"Delete '{node.Server.Name}'? This cannot be undone.",
+            "Delete server",
+            MessageBoxButton.YesNo,
+            MessageBoxImage.Warning,
+            MessageBoxResult.No);
+
+        if (result != MessageBoxResult.Yes)
+        {
+            return;
+        }
+
+        _appData.Servers.RemoveAll(s => s.Id == node.Server.Id);
+        _storage.Save(_appData);
+
+        DetailContent.DataContext = null;
+        DetailContent.Visibility = Visibility.Collapsed;
+        EmptyState.Visibility = Visibility.Visible;
 
         RefreshTree();
     }

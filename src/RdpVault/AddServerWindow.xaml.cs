@@ -6,15 +6,40 @@ namespace RdpVault;
 
 public partial class AddServerWindow : Window
 {
+    private readonly bool _isEditMode;
+    private readonly string? _editingId;
+    private readonly string? _editingCredentialRef;
+
     public ServerEntry? Result { get; private set; }
     public string GroupName { get; private set; } = string.Empty;
 
-    public AddServerWindow(IEnumerable<string> existingGroupNames)
+    public AddServerWindow(IEnumerable<string> existingGroupNames, ServerEntry? prefillFrom = null, string? prefillGroupName = null, bool isEditMode = false)
     {
         InitializeComponent();
         foreach (var name in existingGroupNames)
         {
             GroupBox.Items.Add(name);
+        }
+
+        _isEditMode = isEditMode;
+
+        if (prefillFrom is not null)
+        {
+            HeaderText.Text = isEditMode ? "Edit Server" : "Copy Server";
+            Title = HeaderText.Text;
+            NameBox.Text = isEditMode ? prefillFrom.Name : $"{prefillFrom.Name} (Copy)";
+            HostBox.Text = prefillFrom.Host;
+            PortBox.Text = prefillFrom.Port.ToString();
+            UsernameBox.Text = prefillFrom.Username;
+            DomainBox.Text = prefillFrom.Domain ?? string.Empty;
+            GroupBox.Text = prefillGroupName ?? string.Empty;
+            FavoriteCheck.IsChecked = prefillFrom.IsFavorite;
+
+            if (isEditMode)
+            {
+                _editingId = prefillFrom.Id;
+                _editingCredentialRef = prefillFrom.CredentialRef;
+            }
         }
     }
 
@@ -47,6 +72,13 @@ public partial class AddServerWindow : Window
             Domain = string.IsNullOrWhiteSpace(DomainBox.Text) ? null : DomainBox.Text.Trim(),
             IsFavorite = FavoriteCheck.IsChecked == true,
         };
+
+        if (_isEditMode)
+        {
+            Result.Id = _editingId!;
+            Result.CredentialRef = _editingCredentialRef;
+        }
+
         GroupName = groupName;
 
         DialogResult = true;
