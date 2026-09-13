@@ -1,8 +1,12 @@
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.IO;
 using System.Linq;
+using System.Text.Json;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
+using Microsoft.Win32;
 using RdpVault.Models;
 using RdpVault.Services;
 
@@ -194,6 +198,144 @@ public partial class MainWindow : Window
     private void AddServerButton_Click(object sender, RoutedEventArgs e)
     {
         OpenAddServerDialog();
+    }
+
+    private void MoreButton_Click(object sender, RoutedEventArgs e)
+    {
+        var button = (Button)sender;
+        var menu = new ContextMenu { PlacementTarget = button };
+
+        var exportItem = new MenuItem { Header = "Export servers..." };
+        exportItem.Click += (_, _) => ExportServers();
+        menu.Items.Add(exportItem);
+
+        var importItem = new MenuItem { Header = "Import servers..." };
+        importItem.Click += (_, _) => ImportServers();
+        menu.Items.Add(importItem);
+
+        menu.IsOpen = true;
+    }
+
+    private void ExportServers()
+    {
+        var dialog = new SaveFileDialog
+        {
+            FileName = "rdpvault-export.json",
+            Filter = "JSON files (*.json)|*.json|All files (*.*)|*.*",
+        };
+        if (dialog.ShowDialog(this) != true)
+        {
+            return;
+        }
+
+        var count = ExportServersToFile(dialog.FileName);
+
+        MessageBox.Show(
+            this,
+            $"Exported {count} server(s) to:\n{dialog.FileName}\n\nSaved passwords are not included — they stay in Windows Credential Manager on this machine.",
+            "Export complete",
+            MessageBoxButton.OK,
+            MessageBoxImage.Information);
+    }
+
+    private int ExportServersToFile(string path)
+    {
+        var json = JsonSerializer.Serialize(_appData, new JsonSerializerOptions { WriteIndented = true });
+        File.WriteAllText(path, json);
+        return _appData.Servers.Count;
+    }
+
+    private void ImportServers()
+    {
+        var dialog = new OpenFileDialog
+        {
+            Filter = "JSON files (*.json)|*.json|All files (*.*)|*.*",
+        };
+        if (dialog.ShowDialog(this) != true)
+        {
+            return;
+        }
+
+        var importedCount = ImportServersFromFile(dialog.FileName);
+        if (importedCount is null)
+        {
+            MessageBox.Show(this, "That file isn't a valid RDP Vault export.", "Import failed", MessageBoxButton.OK, MessageBoxImage.Error);
+            return;
+        }
+
+        MessageBox.Show(
+            this,
+            $"Imported {importedCount} server(s).\n\nAny saved passwords need to be re-entered — they aren't included in exports for security.",
+            "Import complete",
+            MessageBoxButton.OK,
+            MessageBoxImage.Information);
+    }
+
+    private int? ImportServersFromFile(string path)
+    {
+        AppData imported;
+        try
+        {
+            var json = File.ReadAllText(path);
+            imported = JsonSerializer.Deserialize<AppData>(json) ?? new AppData();
+        }
+        catch (JsonException)
+        {
+            return null;
+        }
+
+        var groupIdMap = new Dictionary<string, string>();
+        foreach (var importedGroup in imported.Groups)
+        {
+            var existing = _appData.Groups.FirstOrDefault(g => g.Name.Equals(importedGroup.Name, StringComparison.OrdinalIgnoreCase));
+            if (existing is null)
+            {
+                existing = new Group { Name = importedGroup.Name };
+                _appData.Groups.Add(existing);
+            }
+
+            groupIdMap[importedGroup.Id] = existing.Id;
+        }
+
+        var importedCount = 0;
+        foreach (var importedServer in imported.Servers)
+        {
+            var groupId = importedServer.GroupId is not null && groupIdMap.TryGetValue(importedServer.GroupId, out var mappedId)
+                ? mappedId
+                : EnsureUngroupedGroupId();
+
+            _appData.Servers.Add(new ServerEntry
+            {
+                Name = importedServer.Name,
+                Host = importedServer.Host,
+                Port = importedServer.Port,
+                Username = importedServer.Username,
+                Domain = importedServer.Domain,
+                GroupId = groupId,
+                IsFavorite = importedServer.IsFavorite,
+                Notes = importedServer.Notes,
+                // CredentialRef intentionally left null: a credential name from another
+                // export/machine has no matching Windows Credential Manager entry here.
+            });
+            importedCount++;
+        }
+
+        _storage.Save(_appData);
+        RefreshTree();
+
+        return importedCount;
+    }
+
+    private string EnsureUngroupedGroupId()
+    {
+        var ungrouped = _appData.Groups.FirstOrDefault(g => g.Name == "Ungrouped");
+        if (ungrouped is null)
+        {
+            ungrouped = new Group { Name = "Ungrouped" };
+            _appData.Groups.Add(ungrouped);
+        }
+
+        return ungrouped.Id;
     }
 
     private void AddGroupButton_Click(object sender, RoutedEventArgs e)
