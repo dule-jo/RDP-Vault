@@ -12,6 +12,9 @@ public partial class AddServerWindow : Window
 
     public ServerEntry? Result { get; private set; }
     public string GroupName { get; private set; } = string.Empty;
+    public string Password => PasswordBox.Password;
+    public bool RememberPassword => RememberPasswordCheck.IsChecked == true;
+    public bool HasExistingCredential => !string.IsNullOrEmpty(_editingCredentialRef);
 
     public AddServerWindow(IEnumerable<string> existingGroupNames, ServerEntry? prefillFrom = null, string? prefillGroupName = null, bool isEditMode = false)
     {
@@ -39,8 +42,15 @@ public partial class AddServerWindow : Window
             {
                 _editingId = prefillFrom.Id;
                 _editingCredentialRef = prefillFrom.CredentialRef;
+
+                if (_editingCredentialRef is not null)
+                {
+                    RememberPasswordCheck.IsChecked = true;
+                    PasswordHint.Visibility = Visibility.Visible;
+                }
             }
         }
+
     }
 
     private void RememberPasswordCheck_CheckedChanged(object sender, RoutedEventArgs e)

@@ -33,6 +33,7 @@ public class ServerNode
 public partial class MainWindow : Window
 {
     private readonly JsonStorageService _storage = new();
+    private readonly CredentialService _credentialService = new();
     private AppData _appData = new();
     private ObservableCollection<TreeGroup> _groups = [];
 
@@ -230,6 +231,13 @@ public partial class MainWindow : Window
         }
 
         server.GroupId = group.Id;
+
+        if (dialog.RememberPassword && !string.IsNullOrEmpty(dialog.Password))
+        {
+            _credentialService.SaveCredential(server.Id, server.Username, dialog.Password);
+            server.CredentialRef = server.Id;
+        }
+
         _appData.Servers.Add(server);
         _storage.Save(_appData);
 
@@ -257,6 +265,25 @@ public partial class MainWindow : Window
             _appData.Groups.Add(group);
         }
         updated.GroupId = group.Id;
+
+        if (dialog.RememberPassword)
+        {
+            if (!string.IsNullOrEmpty(dialog.Password))
+            {
+                _credentialService.SaveCredential(updated.Id, updated.Username, dialog.Password);
+                updated.CredentialRef = updated.Id;
+            }
+            else
+            {
+                // Checkbox left checked but no new password typed - keep the existing credential as-is.
+                updated.CredentialRef = node.Server.CredentialRef;
+            }
+        }
+        else if (node.Server.CredentialRef is not null)
+        {
+            _credentialService.DeleteCredential(node.Server.CredentialRef);
+            updated.CredentialRef = null;
+        }
 
         var index = _appData.Servers.FindIndex(s => s.Id == updated.Id);
         if (index >= 0)
@@ -291,6 +318,11 @@ public partial class MainWindow : Window
         if (result != MessageBoxResult.Yes)
         {
             return;
+        }
+
+        if (node.Server.CredentialRef is not null)
+        {
+            _credentialService.DeleteCredential(node.Server.CredentialRef);
         }
 
         _appData.Servers.RemoveAll(s => s.Id == node.Server.Id);
@@ -419,6 +451,11 @@ public partial class MainWindow : Window
 
             if (choice == MessageBoxResult.Yes)
             {
+                foreach (var server in affectedServers.Where(s => s.CredentialRef is not null))
+                {
+                    _credentialService.DeleteCredential(server.CredentialRef!);
+                }
+
                 _appData.Servers.RemoveAll(s => s.GroupId == appGroup.Id);
             }
             else

@@ -92,6 +92,9 @@
 
                 <TextBlock Text="Password" Style="{StaticResource FieldLabel}"/>
                 <PasswordBox x:Name="PasswordBox" IsEnabled="False"/>
+                <TextBlock x:Name="PasswordHint" Text="A password is already saved. Leave blank to keep it, or type a new one to replace it."
+                           FontSize="11" Foreground="{StaticResource TextSecondaryBrush}" TextWrapping="Wrap"
+                           Margin="0,-10,0,10" Visibility="Collapsed"/>
 
                 <CheckBox x:Name="RememberPasswordCheck" Content="Remember password (Windows Credential Manager)"
                           Margin="0,-4,0,14" FontSize="12" Foreground="{StaticResource TextSecondaryBrush}"
