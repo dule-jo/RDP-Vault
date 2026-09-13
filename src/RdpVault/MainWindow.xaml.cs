@@ -149,6 +149,27 @@ public partial class MainWindow : Window
         OpenAddServerDialog();
     }
 
+    private void AddGroupButton_Click(object sender, RoutedEventArgs e)
+    {
+        var dialog = new RenameGroupWindow(string.Empty, isNew: true) { Owner = this };
+        if (dialog.ShowDialog() != true)
+        {
+            return;
+        }
+
+        var name = dialog.NewName;
+
+        if (_appData.Groups.Any(g => g.Name.Equals(name, StringComparison.OrdinalIgnoreCase)))
+        {
+            MessageBox.Show(this, $"A group named '{name}' already exists.", "Duplicate group", MessageBoxButton.OK, MessageBoxImage.Warning);
+            return;
+        }
+
+        _appData.Groups.Add(new Group { Name = name });
+        _storage.Save(_appData);
+        RefreshTree();
+    }
+
     private void CopyButton_Click(object sender, RoutedEventArgs e)
     {
         if (DetailContent.DataContext is ServerNode node)

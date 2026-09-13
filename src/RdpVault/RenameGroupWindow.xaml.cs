@@ -6,10 +6,17 @@ public partial class RenameGroupWindow : Window
 {
     public string NewName { get; private set; } = string.Empty;
 
-    public RenameGroupWindow(string currentName)
+    public RenameGroupWindow(string currentName, bool isNew = false)
     {
         InitializeComponent();
         NameBox.Text = currentName;
+
+        if (isNew)
+        {
+            HeaderText.Text = "New Group";
+            Title = "New Group";
+        }
+
         Loaded += (_, _) =>
         {
             NameBox.Focus();
