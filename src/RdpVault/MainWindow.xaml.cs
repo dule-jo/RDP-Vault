@@ -88,14 +88,20 @@ public partial class MainWindow : Window
             }
         }
 
-        var groupNodes = _appData.Groups.Select(group => new TreeGroup
-        {
-            Name = group.Name,
-            Servers = new ObservableCollection<ServerNode>(
-                _appData.Servers
-                    .Where(s => s.GroupId == group.Id)
-                    .Select(s => new ServerNode { Server = s, GroupName = group.Name })),
-        }).ToList();
+        var filter = SearchBox.Text?.Trim() ?? string.Empty;
+        var isFiltering = !string.IsNullOrEmpty(filter);
+
+        var groupNodes = _appData.Groups
+            .Select(group => new TreeGroup
+            {
+                Name = group.Name,
+                Servers = new ObservableCollection<ServerNode>(
+                    _appData.Servers
+                        .Where(s => s.GroupId == group.Id && MatchesFilter(s, filter))
+                        .Select(s => new ServerNode { Server = s, GroupName = group.Name })),
+            })
+            .Where(g => !isFiltering || g.Servers.Count > 0)
+            .ToList();
 
         var favoritesNode = new TreeGroup
         {
@@ -105,17 +111,45 @@ public partial class MainWindow : Window
                 groupNodes.SelectMany(g => g.Servers).Where(n => n.Server.IsFavorite)),
         };
 
-        _groups = [favoritesNode, .. groupNodes];
+        _groups = isFiltering && favoritesNode.Servers.Count == 0
+            ? [.. groupNodes]
+            : [favoritesNode, .. groupNodes];
         ServerTree.ItemsSource = _groups;
         ServerTree.UpdateLayout();
 
-        foreach (var name in previouslyExpanded)
+        if (isFiltering)
         {
-            if (ServerTree.ItemContainerGenerator.ContainerFromItem(_groups.FirstOrDefault(g => g.Name == name)) is TreeViewItem item)
+            // Auto-expand every visible group so search results are immediately visible.
+            foreach (var group in _groups)
             {
-                item.IsExpanded = true;
+                if (ServerTree.ItemContainerGenerator.ContainerFromItem(group) is TreeViewItem item)
+                {
+                    item.IsExpanded = true;
+                }
             }
         }
+        else
+        {
+            foreach (var name in previouslyExpanded)
+            {
+                if (ServerTree.ItemContainerGenerator.ContainerFromItem(_groups.FirstOrDefault(g => g.Name == name)) is TreeViewItem item)
+                {
+                    item.IsExpanded = true;
+                }
+            }
+        }
+    }
+
+    private static bool MatchesFilter(ServerEntry server, string filter)
+    {
+        if (string.IsNullOrEmpty(filter))
+        {
+            return true;
+        }
+
+        return server.Name.Contains(filter, StringComparison.OrdinalIgnoreCase)
+            || server.Host.Contains(filter, StringComparison.OrdinalIgnoreCase)
+            || server.Username.Contains(filter, StringComparison.OrdinalIgnoreCase);
     }
 
     private bool IsExpanded(TreeGroup group)
@@ -142,6 +176,7 @@ public partial class MainWindow : Window
     private void SearchBox_TextChanged(object sender, TextChangedEventArgs e)
     {
         SearchPlaceholder.Visibility = string.IsNullOrEmpty(SearchBox.Text) ? Visibility.Visible : Visibility.Collapsed;
+        RefreshTree();
     }
 
     private void AddServerButton_Click(object sender, RoutedEventArgs e)
