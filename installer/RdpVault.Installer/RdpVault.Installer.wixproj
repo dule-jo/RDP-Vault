@@ -1,0 +1,10 @@
+<Project Sdk="WixToolset.Sdk/5.0.2">
+
+  <PropertyGroup>
+    <OutputType>Package</OutputType>
+    <OutputName>RdpVault-Setup</OutputName>
+    <Platform>x64</Platform>
+    <DefineConstants>ProductVersion=0.1.0</DefineConstants>
+  </PropertyGroup>
+
+</Project>

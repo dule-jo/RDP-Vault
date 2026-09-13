@@ -1,0 +1,41 @@
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
+  <Package Name="RDP Vault"
+           Manufacturer="dulejo"
+           Version="$(var.ProductVersion)"
+           UpgradeCode="B9A588DB-307A-4941-9F43-0E3C948A45F4"
+           Compressed="yes">
+
+    <MajorUpgrade DowngradeErrorMessage="A newer version of [ProductName] is already installed." />
+    <MediaTemplate EmbedCab="yes" />
+
+    <Icon Id="RdpVaultIcon.ico" SourceFile="..\..\src\RdpVault\Assets\icon.ico" />
+    <Property Id="ARPPRODUCTICON" Value="RdpVaultIcon.ico" />
+
+    <StandardDirectory Id="ProgramFiles64Folder">
+      <Directory Id="INSTALLFOLDER" Name="RDP Vault">
+        <Component Id="MainExecutable" Guid="6F5C2B9E-6C3B-4B6E-9B7A-5B5D9F0F1A11">
+          <File Id="RdpVaultExe"
+                Source="..\..\src\RdpVault\bin\Release\net10.0-windows\win-x64\publish\RdpVault.exe"
+                KeyPath="yes" />
+        </Component>
+      </Directory>
+    </StandardDirectory>
+
+    <StandardDirectory Id="ProgramMenuFolder">
+      <Component Id="ApplicationShortcut" Guid="2B6E8C9A-9A7B-4E7D-8A2C-3F6A9B4E6D22">
+        <Shortcut Id="ApplicationStartMenuShortcut"
+                  Name="RDP Vault"
+                  Target="[INSTALLFOLDER]RdpVault.exe"
+                  WorkingDirectory="INSTALLFOLDER"
+                  Icon="RdpVaultIcon.ico" />
+        <RemoveFolder Id="CleanUpShortcut" Directory="ProgramMenuFolder" On="uninstall" />
+        <RegistryValue Root="HKCU" Key="Software\dulejo\RdpVault" Name="installed" Type="integer" Value="1" KeyPath="yes" />
+      </Component>
+    </StandardDirectory>
+
+    <Feature Id="Main">
+      <ComponentRef Id="MainExecutable" />
+      <ComponentRef Id="ApplicationShortcut" />
+    </Feature>
+  </Package>
+</Wix>
