@@ -34,12 +34,15 @@ public partial class MainWindow : Window
 {
     private readonly JsonStorageService _storage = new();
     private readonly CredentialService _credentialService = new();
+    private readonly ConnectService _connectService;
     private AppData _appData = new();
     private ObservableCollection<TreeGroup> _groups = [];
 
     public MainWindow()
     {
         InitializeComponent();
+
+        _connectService = new ConnectService(new RdpFileService(_credentialService));
 
         _appData = _storage.Load();
         if (_appData.Groups.Count == 0 && _appData.Servers.Count == 0)
@@ -178,6 +181,14 @@ public partial class MainWindow : Window
     {
         SearchPlaceholder.Visibility = string.IsNullOrEmpty(SearchBox.Text) ? Visibility.Visible : Visibility.Collapsed;
         RefreshTree();
+    }
+
+    private void ConnectButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (DetailContent.DataContext is ServerNode node)
+        {
+            _connectService.Connect(node.Server);
+        }
     }
 
     private void AddServerButton_Click(object sender, RoutedEventArgs e)

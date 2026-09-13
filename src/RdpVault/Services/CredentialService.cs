@@ -83,23 +83,45 @@ public class CredentialService
     }
 
     /// <summary>
-    /// Encrypts a plaintext value using CredProtect (DPAPI, current-user scoped) into the
-    /// text form used by the "password 51:b:&lt;value&gt;" field of a .rdp file.
+    /// Encrypts a plaintext value using DPAPI (CryptProtectData, current-user scoped) and
+    /// hex-encodes it into the form used by the "password 51:b:&lt;value&gt;" field of a
+    /// .rdp file. Hex encoding guarantees the result contains no line breaks or control
+    /// characters, which the .rdp line-oriented format requires.
     /// </summary>
     public string ProtectForRdpFile(string plainText)
     {
-        var inputLength = plainText.Length + 1;
-        var outputLength = 0;
-
-        NativeMethods.CredProtect(true, plainText, inputLength, null, ref outputLength, out _);
-
-        var output = new StringBuilder(outputLength);
-        if (!NativeMethods.CredProtect(true, plainText, inputLength, output, ref outputLength, out _))
+        var passwordBytes = Encoding.Unicode.GetBytes(plainText);
+        var inputBlob = new NativeMethods.DATA_BLOB
         {
-            throw new Win32Exception(Marshal.GetLastWin32Error(), "Failed to protect credential for .rdp file.");
-        }
+            cbData = (uint)passwordBytes.Length,
+            pbData = Marshal.AllocHGlobal(passwordBytes.Length),
+        };
 
-        return output.ToString();
+        try
+        {
+            Marshal.Copy(passwordBytes, 0, inputBlob.pbData, passwordBytes.Length);
+
+            var outputBlob = new NativeMethods.DATA_BLOB();
+            if (!NativeMethods.CryptProtectData(ref inputBlob, null, IntPtr.Zero, IntPtr.Zero, IntPtr.Zero, 0, ref outputBlob))
+            {
+                throw new Win32Exception(Marshal.GetLastWin32Error(), "Failed to protect credential for .rdp file.");
+            }
+
+            try
+            {
+                var encryptedBytes = new byte[outputBlob.cbData];
+                Marshal.Copy(outputBlob.pbData, encryptedBytes, 0, (int)outputBlob.cbData);
+                return Convert.ToHexString(encryptedBytes);
+            }
+            finally
+            {
+                NativeMethods.LocalFree(outputBlob.pbData);
+            }
+        }
+        finally
+        {
+            Marshal.FreeHGlobal(inputBlob.pbData);
+        }
     }
 
     private static class NativeMethods
@@ -136,13 +158,24 @@ public class CredentialService
         [DllImport("advapi32.dll", EntryPoint = "CredFree")]
         public static extern void CredFree(IntPtr buffer);
 
-        [DllImport("advapi32.dll", EntryPoint = "CredProtectW", SetLastError = true, CharSet = CharSet.Unicode)]
-        public static extern bool CredProtect(
-            bool fAsSelf,
-            string credentials,
-            int credentialsLength,
-            StringBuilder? protectedCredentials,
-            ref int protectedCredentialsLength,
-            out uint protectionType);
+        [StructLayout(LayoutKind.Sequential)]
+        public struct DATA_BLOB
+        {
+            public uint cbData;
+            public IntPtr pbData;
+        }
+
+        [DllImport("crypt32.dll", SetLastError = true, CharSet = CharSet.Unicode)]
+        public static extern bool CryptProtectData(
+            ref DATA_BLOB dataIn,
+            string? dataDescription,
+            IntPtr optionalEntropy,
+            IntPtr reserved,
+            IntPtr promptStruct,
+            uint flags,
+            ref DATA_BLOB dataOut);
+
+        [DllImport("kernel32.dll")]
+        public static extern IntPtr LocalFree(IntPtr handle);
     }
 }
