@@ -58,7 +58,8 @@
             <Border Grid.Column="0" Background="White" BorderBrush="{StaticResource BorderBrush1}" BorderThickness="0,0,1,0">
                 <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="10,14">
                     <TreeView x:Name="ServerTree" BorderThickness="0" Background="Transparent"
-                              SelectedItemChanged="ServerTree_SelectedItemChanged"/>
+                              SelectedItemChanged="ServerTree_SelectedItemChanged"
+                              ContextMenuOpening="ServerTree_ContextMenuOpening"/>
                 </ScrollViewer>
             </Border>
 

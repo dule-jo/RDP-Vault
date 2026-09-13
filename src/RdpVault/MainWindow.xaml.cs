@@ -2,6 +2,7 @@ using System.Collections.ObjectModel;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Media;
 using RdpVault.Models;
 using RdpVault.Services;
 
@@ -237,6 +238,150 @@ public partial class MainWindow : Window
         }
 
         _appData.Servers.RemoveAll(s => s.Id == node.Server.Id);
+        _storage.Save(_appData);
+
+        DetailContent.DataContext = null;
+        DetailContent.Visibility = Visibility.Collapsed;
+        EmptyState.Visibility = Visibility.Visible;
+
+        RefreshTree();
+    }
+
+    private void ServerTree_ContextMenuOpening(object sender, ContextMenuEventArgs e)
+    {
+        if (e.OriginalSource is not DependencyObject source)
+        {
+            return;
+        }
+
+        var treeViewItem = FindAncestor<TreeViewItem>(source);
+        if (treeViewItem?.DataContext is TreeGroup treeGroup && treeGroup.Name != "Favorites")
+        {
+            treeViewItem.ContextMenu = BuildGroupContextMenu(treeGroup);
+        }
+        else
+        {
+            e.Handled = true;
+        }
+    }
+
+    private ContextMenu BuildGroupContextMenu(TreeGroup treeGroup)
+    {
+        var menu = new ContextMenu();
+
+        var renameItem = new MenuItem { Header = "Rename Group..." };
+        renameItem.Click += (_, _) => RenameGroup(treeGroup);
+        menu.Items.Add(renameItem);
+
+        var deleteItem = new MenuItem { Header = "Delete Group..." };
+        deleteItem.Click += (_, _) => DeleteGroup(treeGroup);
+        menu.Items.Add(deleteItem);
+
+        return menu;
+    }
+
+    private static T? FindAncestor<T>(DependencyObject current) where T : DependencyObject
+    {
+        while (current is not null)
+        {
+            if (current is T match)
+            {
+                return match;
+            }
+
+            current = VisualTreeHelper.GetParent(current);
+        }
+
+        return null;
+    }
+
+    private void RenameGroup(TreeGroup treeGroup)
+    {
+        var appGroup = _appData.Groups.FirstOrDefault(g => g.Name == treeGroup.Name);
+        if (appGroup is null)
+        {
+            return;
+        }
+
+        var dialog = new RenameGroupWindow(appGroup.Name) { Owner = this };
+        if (dialog.ShowDialog() != true)
+        {
+            return;
+        }
+
+        var newName = dialog.NewName;
+        if (newName == appGroup.Name)
+        {
+            return;
+        }
+
+        if (_appData.Groups.Any(g => g.Id != appGroup.Id && g.Name.Equals(newName, StringComparison.OrdinalIgnoreCase)))
+        {
+            MessageBox.Show(this, $"A group named '{newName}' already exists.", "Duplicate group", MessageBoxButton.OK, MessageBoxImage.Warning);
+            return;
+        }
+
+        appGroup.Name = newName;
+        _storage.Save(_appData);
+        RefreshTree();
+    }
+
+    private void DeleteGroup(TreeGroup treeGroup)
+    {
+        var appGroup = _appData.Groups.FirstOrDefault(g => g.Name == treeGroup.Name);
+        if (appGroup is null)
+        {
+            return;
+        }
+
+        var affectedServers = _appData.Servers.Where(s => s.GroupId == appGroup.Id).ToList();
+
+        if (affectedServers.Count == 0)
+        {
+            if (MessageBox.Show(this, $"Delete empty group '{appGroup.Name}'?", "Delete group", MessageBoxButton.YesNo, MessageBoxImage.Warning, MessageBoxResult.No) != MessageBoxResult.Yes)
+            {
+                return;
+            }
+        }
+        else
+        {
+            var choice = MessageBox.Show(
+                this,
+                $"Group '{appGroup.Name}' contains {affectedServers.Count} server(s).\n\n" +
+                "Yes = delete the group AND its servers\n" +
+                "No = delete the group but keep its servers (moved to Ungrouped)\n" +
+                "Cancel = don't delete anything",
+                "Delete group",
+                MessageBoxButton.YesNoCancel,
+                MessageBoxImage.Warning,
+                MessageBoxResult.Cancel);
+
+            if (choice == MessageBoxResult.Cancel)
+            {
+                return;
+            }
+
+            if (choice == MessageBoxResult.Yes)
+            {
+                _appData.Servers.RemoveAll(s => s.GroupId == appGroup.Id);
+            }
+            else
+            {
+                var ungrouped = _appData.Groups.FirstOrDefault(g => g.Id != appGroup.Id && g.Name == "Ungrouped");
+                if (ungrouped is null)
+                {
+                    ungrouped = new Group { Name = "Ungrouped" };
+                    _appData.Groups.Add(ungrouped);
+                }
+
+                foreach (var server in affectedServers)
+                {
+                    server.GroupId = ungrouped.Id;
+                }
+            }
+        }
+
+        _appData.Groups.Remove(appGroup);
         _storage.Save(_appData);
 
         DetailContent.DataContext = null;
