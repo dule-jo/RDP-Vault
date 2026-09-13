@@ -68,11 +68,6 @@ public partial class MainWindow : Window
             Groups = [production, development],
             Servers =
             [
-                new ServerEntry { Name = "Web 01", Host = "10.10.1.10", Username = "dusan", Domain = "CORP", GroupId = production.Id },
-                new ServerEntry { Name = "Web 02", Host = "10.10.1.11", Username = "dusan", Domain = "CORP", GroupId = production.Id },
-                new ServerEntry { Name = "DB 01", Host = "10.10.1.50", Username = "dusan", Domain = "CORP", GroupId = production.Id, IsFavorite = true },
-                new ServerEntry { Name = "Dev 01", Host = "10.10.2.10", Username = "dusan", GroupId = development.Id, IsFavorite = true },
-                new ServerEntry { Name = "Dev 02", Host = "10.10.2.11", Username = "dusan", GroupId = development.Id },
             ],
         };
     }
