@@ -18,7 +18,6 @@ namespace RdpVault;
 public class TreeGroup
 {
     public string Name { get; init; } = string.Empty;
-    public string Icon { get; init; } = "📁";
     public ObservableCollection<ServerNode> Servers { get; init; } = [];
 }
 
@@ -109,7 +108,6 @@ public partial class MainWindow : Window
         var favoritesNode = new TreeGroup
         {
             Name = "Favorites",
-            Icon = "⭐",
             Servers = new ObservableCollection<ServerNode>(
                 groupNodes.SelectMany(g => g.Servers).Where(n => n.Server.IsFavorite)),
         };
@@ -199,6 +197,25 @@ public partial class MainWindow : Window
     {
         var button = (Button)sender;
         var menu = new ContextMenu { PlacementTarget = button };
+        var app = (App)Application.Current;
+
+        foreach (var (label, value) in new (string, string)[]
+                 {
+                     ("Auto (match Windows)", "Auto"),
+                     ("Light", "Light"),
+                     ("Dark", "Dark"),
+                 })
+        {
+            var themeItem = new MenuItem
+            {
+                Header = label,
+                IsCheckable = true,
+                IsChecked = app.ThemeChoice == value,
+            };
+            themeItem.Click += (_, _) => app.ApplyTheme(value);
+            menu.Items.Add(themeItem);
+        }
+        menu.Items.Add(new Separator());
 
         var exportItem = new MenuItem { Header = "Export servers..." };
         exportItem.Click += (_, _) => ExportServers();

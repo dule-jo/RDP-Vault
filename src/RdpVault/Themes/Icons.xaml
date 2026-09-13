@@ -1,0 +1,50 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <!-- Outline icons (used with Stroke, Fill=Transparent) -->
+    <GeometryGroup x:Key="IconSearch">
+        <EllipseGeometry Center="9,9" RadiusX="6" RadiusY="6"/>
+        <LineGeometry StartPoint="13.5,13.5" EndPoint="19,19"/>
+    </GeometryGroup>
+
+    <GeometryGroup x:Key="IconMonitor">
+        <RectangleGeometry Rect="2,4,20,13" RadiusX="2" RadiusY="2"/>
+        <LineGeometry StartPoint="8,21" EndPoint="16,21"/>
+        <LineGeometry StartPoint="12,17" EndPoint="12,21"/>
+    </GeometryGroup>
+
+    <!-- Filled icons (used with Fill) -->
+    <PathGeometry x:Key="IconStar">
+        <PathFigure StartPoint="12,2" IsClosed="True">
+            <LineSegment Point="14.9,8.6"/>
+            <LineSegment Point="22,9.3"/>
+            <LineSegment Point="16.5,14.1"/>
+            <LineSegment Point="18.2,21"/>
+            <LineSegment Point="12,17.3"/>
+            <LineSegment Point="5.8,21"/>
+            <LineSegment Point="7.5,14.1"/>
+            <LineSegment Point="2,9.3"/>
+            <LineSegment Point="9.1,8.6"/>
+        </PathFigure>
+    </PathGeometry>
+
+    <PathGeometry x:Key="IconFolder">
+        <PathFigure StartPoint="3,6" IsClosed="True">
+            <LineSegment Point="9,6"/>
+            <LineSegment Point="11,8"/>
+            <LineSegment Point="21,8"/>
+            <LineSegment Point="21,19"/>
+            <LineSegment Point="3,19"/>
+        </PathFigure>
+    </PathGeometry>
+
+    <PathGeometry x:Key="IconPlus">
+        <PathFigure StartPoint="11,3" IsClosed="False">
+            <LineSegment Point="11,19"/>
+        </PathFigure>
+        <PathFigure StartPoint="3,11" IsClosed="False">
+            <LineSegment Point="19,11"/>
+        </PathFigure>
+    </PathGeometry>
+
+</ResourceDictionary>

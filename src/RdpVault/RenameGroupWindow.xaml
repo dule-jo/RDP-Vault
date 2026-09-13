@@ -7,7 +7,7 @@
         Title="Rename Group" Height="250" Width="360"
         WindowStartupLocation="CenterOwner"
         ResizeMode="NoResize"
-        Background="#F4F5F7"
+        Background="{DynamicResource WindowBackgroundBrush}"
         FontFamily="Segoe UI">
 
     <Grid Margin="24">
@@ -18,10 +18,11 @@
         </Grid.RowDefinitions>
 
         <TextBlock x:Name="HeaderText" Grid.Row="0" Text="Rename Group" FontSize="18" FontWeight="Bold"
-                   Foreground="{StaticResource TextPrimaryBrush}" Margin="0,0,0,16"/>
+                   Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,0,0,16"/>
 
         <TextBox x:Name="NameBox" Grid.Row="1" VerticalAlignment="Top"
-                 Padding="10,8" Background="White" BorderBrush="{StaticResource BorderBrush1}" BorderThickness="1" FontSize="13">
+                 Padding="10,8" Background="{DynamicResource FieldBackgroundBrush}" Foreground="{DynamicResource TextPrimaryBrush}"
+                 BorderBrush="{DynamicResource BorderBrush1}" BorderThickness="1" FontSize="13">
             <TextBox.Template>
                 <ControlTemplate TargetType="TextBox">
                     <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="6">

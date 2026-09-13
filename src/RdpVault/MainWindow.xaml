@@ -6,7 +6,8 @@
         xmlns:local="clr-namespace:RdpVault"
         mc:Ignorable="d"
         Title="RDP Vault" Height="650" Width="1000" MinHeight="480" MinWidth="760"
-        Background="#F4F5F7"
+        Icon="Assets/icon.ico"
+        Background="{DynamicResource WindowBackgroundBrush}"
         FontFamily="Segoe UI">
 
     <Grid>
@@ -16,7 +17,7 @@
         </Grid.RowDefinitions>
 
         <!-- Top bar -->
-        <Border Grid.Row="0" Background="White" BorderBrush="{StaticResource BorderBrush1}" BorderThickness="0,0,0,1">
+        <Border Grid.Row="0" Background="{DynamicResource SurfaceBrush}" BorderBrush="{DynamicResource BorderBrush1}" BorderThickness="0,0,0,1">
             <Grid Margin="20,14">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto"/>
@@ -28,27 +29,38 @@
                 </Grid.ColumnDefinitions>
 
                 <TextBlock Grid.Column="0" Text="RDP Vault" FontSize="18" FontWeight="Bold"
-                           Foreground="{StaticResource TextPrimaryBrush}" VerticalAlignment="Center"/>
+                           Foreground="{DynamicResource TextPrimaryBrush}" VerticalAlignment="Center"/>
 
-                <Border Grid.Column="2" Background="#F4F5F7" CornerRadius="8" Padding="10,7" Width="260" Margin="0,0,12,0">
+                <Border Grid.Column="2" Background="{DynamicResource InputBackgroundBrush}" CornerRadius="8" Padding="10,7" Width="260" Margin="0,0,12,0">
                     <Grid>
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="Auto"/>
                             <ColumnDefinition Width="*"/>
                         </Grid.ColumnDefinitions>
-                        <TextBlock Grid.Column="0" Text="🔍" Margin="0,0,8,0" Foreground="{StaticResource TextSecondaryBrush}" VerticalAlignment="Center"/>
+                        <Path Grid.Column="0" Width="13" Height="13" Margin="0,0,8,0" Stretch="Uniform"
+                              Stroke="{DynamicResource TextSecondaryBrush}" StrokeThickness="1.8"
+                              StrokeStartLineCap="Round" StrokeEndLineCap="Round"
+                              Data="{StaticResource IconSearch}" VerticalAlignment="Center"/>
                         <Grid Grid.Column="1">
-                            <TextBlock x:Name="SearchPlaceholder" Text="Search servers..." Foreground="{StaticResource TextSecondaryBrush}" IsHitTestVisible="False"/>
-                            <TextBox x:Name="SearchBox" Background="Transparent" BorderThickness="0" TextChanged="SearchBox_TextChanged"/>
+                            <TextBlock x:Name="SearchPlaceholder" Text="Search servers..." Foreground="{DynamicResource TextSecondaryBrush}" IsHitTestVisible="False"/>
+                            <TextBox x:Name="SearchBox" Background="Transparent" Foreground="{DynamicResource TextPrimaryBrush}" BorderThickness="0" TextChanged="SearchBox_TextChanged"/>
                         </Grid>
                     </Grid>
                 </Border>
 
                 <Button Grid.Column="3" Style="{StaticResource SecondaryButton}" Content="⋯" Padding="14,8" Margin="0,0,10,0" Click="MoreButton_Click"/>
 
-                <Button Grid.Column="4" Style="{StaticResource SecondaryButton}" Content="📁+ Group" Margin="0,0,10,0" Click="AddGroupButton_Click"/>
+                <Button Grid.Column="4" Style="{StaticResource SecondaryButton}" Margin="0,0,10,0" Click="AddGroupButton_Click">
+                    <StackPanel Orientation="Horizontal">
+                        <Path Width="12" Height="12" Margin="0,0,6,0" Stretch="Uniform" Fill="{DynamicResource TextPrimaryBrush}" Data="{StaticResource IconFolder}"/>
+                        <TextBlock Text="+ Group"/>
+                    </StackPanel>
+                </Button>
 
-                <Button Grid.Column="5" Style="{StaticResource RoundIconButton}" Content="+" ToolTip="Add server" Click="AddServerButton_Click"/>
+                <Button Grid.Column="5" Style="{StaticResource RoundIconButton}" ToolTip="Add server" Click="AddServerButton_Click">
+                    <Path Width="14" Height="14" Stretch="Uniform" Stroke="{DynamicResource ButtonTextBrush}" StrokeThickness="2"
+                          StrokeStartLineCap="Round" StrokeEndLineCap="Round" Data="{StaticResource IconPlus}"/>
+                </Button>
             </Grid>
         </Border>
 
@@ -61,7 +73,7 @@
             </Grid.ColumnDefinitions>
 
             <!-- Sidebar -->
-            <Border Grid.Column="0" Background="White" BorderBrush="{StaticResource BorderBrush1}" BorderThickness="0,0,1,0">
+            <Border Grid.Column="0" Background="{DynamicResource SurfaceBrush}" BorderBrush="{DynamicResource BorderBrush1}" BorderThickness="0,0,1,0">
                 <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="10,14">
                     <TreeView x:Name="ServerTree" BorderThickness="0" Background="Transparent"
                               SelectedItemChanged="ServerTree_SelectedItemChanged"
@@ -69,51 +81,61 @@
                 </ScrollViewer>
             </Border>
 
-            <GridSplitter Grid.Column="1" Width="1" Background="{StaticResource BorderBrush1}" HorizontalAlignment="Stretch"/>
+            <GridSplitter Grid.Column="1" Width="1" Background="{DynamicResource BorderBrush1}" HorizontalAlignment="Stretch"/>
 
             <!-- Detail panel -->
             <Grid Grid.Column="2" Margin="40,32">
                 <StackPanel x:Name="EmptyState" VerticalAlignment="Center" HorizontalAlignment="Center" Visibility="Visible">
-                    <TextBlock Text="🖥" FontSize="40" HorizontalAlignment="Center" Opacity="0.4"/>
-                    <TextBlock Text="Select a server to see details" Foreground="{StaticResource TextSecondaryBrush}"
+                    <Path Width="40" Height="40" Stretch="Uniform" Opacity="0.35" HorizontalAlignment="Center"
+                          Stroke="{DynamicResource TextSecondaryBrush}" StrokeThickness="1.2"
+                          StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
+                          Data="{StaticResource IconMonitor}"/>
+                    <TextBlock Text="Select a server to see details" Foreground="{DynamicResource TextSecondaryBrush}"
                                FontSize="14" Margin="0,12,0,0" HorizontalAlignment="Center"/>
                 </StackPanel>
 
                 <StackPanel x:Name="DetailContent" Visibility="Collapsed" MaxWidth="480" HorizontalAlignment="Left">
-                    <TextBlock Text="{Binding Server.Name}" FontSize="26" FontWeight="Bold" Foreground="{StaticResource TextPrimaryBrush}"/>
-                    <TextBlock Text="{Binding HostPort}" FontSize="14" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,4,0,24"/>
+                    <TextBlock Text="{Binding Server.Name}" FontSize="26" FontWeight="Bold" Foreground="{DynamicResource TextPrimaryBrush}"/>
+                    <TextBlock Text="{Binding HostPort}" FontSize="14" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,4,0,24"/>
 
-                    <Border Background="White" BorderBrush="{StaticResource BorderBrush1}" BorderThickness="1" CornerRadius="10" Padding="20">
+                    <Border Background="{DynamicResource SurfaceBrush}" BorderBrush="{DynamicResource BorderBrush1}" BorderThickness="1" CornerRadius="10" Padding="20">
                         <StackPanel>
                             <Grid Margin="0,0,0,14">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="110"/>
                                     <ColumnDefinition Width="*"/>
                                 </Grid.ColumnDefinitions>
-                                <TextBlock Grid.Column="0" Text="Username" Foreground="{StaticResource TextSecondaryBrush}" FontSize="13"/>
-                                <TextBlock Grid.Column="1" Text="{Binding Server.Username}" FontSize="13" Foreground="{StaticResource TextPrimaryBrush}"/>
+                                <TextBlock Grid.Column="0" Text="Username" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="13"/>
+                                <TextBlock Grid.Column="1" Text="{Binding Server.Username}" FontSize="13" Foreground="{DynamicResource TextPrimaryBrush}"/>
                             </Grid>
                             <Grid Margin="0,0,0,14">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="110"/>
                                     <ColumnDefinition Width="*"/>
                                 </Grid.ColumnDefinitions>
-                                <TextBlock Grid.Column="0" Text="Domain" Foreground="{StaticResource TextSecondaryBrush}" FontSize="13"/>
-                                <TextBlock Grid.Column="1" Text="{Binding Server.Domain}" FontSize="13" Foreground="{StaticResource TextPrimaryBrush}"/>
+                                <TextBlock Grid.Column="0" Text="Domain" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="13"/>
+                                <TextBlock Grid.Column="1" Text="{Binding Server.Domain}" FontSize="13" Foreground="{DynamicResource TextPrimaryBrush}"/>
                             </Grid>
                             <Grid>
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="110"/>
                                     <ColumnDefinition Width="*"/>
                                 </Grid.ColumnDefinitions>
-                                <TextBlock Grid.Column="0" Text="Group" Foreground="{StaticResource TextSecondaryBrush}" FontSize="13"/>
-                                <TextBlock Grid.Column="1" Text="{Binding GroupName}" FontSize="13" Foreground="{StaticResource TextPrimaryBrush}"/>
+                                <TextBlock Grid.Column="0" Text="Group" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="13"/>
+                                <TextBlock Grid.Column="1" Text="{Binding GroupName}" FontSize="13" Foreground="{DynamicResource TextPrimaryBrush}"/>
                             </Grid>
                         </StackPanel>
                     </Border>
 
                     <StackPanel Orientation="Horizontal" Margin="0,24,0,0">
-                        <Button Content="🖥  Connect" Style="{StaticResource PrimaryButton}" Margin="0,0,10,0" Click="ConnectButton_Click"/>
+                        <Button Style="{StaticResource PrimaryButton}" Margin="0,0,10,0" Click="ConnectButton_Click">
+                            <StackPanel Orientation="Horizontal">
+                                <Path Width="14" Height="14" Margin="0,0,8,0" Stretch="Uniform" Stroke="{DynamicResource ButtonTextBrush}" StrokeThickness="1.8"
+                                      StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
+                                      Data="{StaticResource IconMonitor}"/>
+                                <TextBlock Text="Connect"/>
+                            </StackPanel>
+                        </Button>
                         <Button Content="Edit" Style="{StaticResource SecondaryButton}" Margin="0,0,10,0" Click="EditButton_Click"/>
                         <Button Content="Copy" Style="{StaticResource SecondaryButton}" Margin="0,0,10,0" Click="CopyButton_Click"/>
                         <Button Content="Delete" Style="{StaticResource SecondaryButton}" Click="DeleteButton_Click"/>
