@@ -6,6 +6,22 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <UseWPF>true</UseWPF>
+    <ApplicationIcon>Assets\icon.ico</ApplicationIcon>
   </PropertyGroup>
+
+  <PropertyGroup>
+    <Version>0.1.0</Version>
+    <Authors>dulejo</Authors>
+    <Company>dulejo</Company>
+    <Product>RDP Vault</Product>
+    <Description>Simple Windows UI for organizing and launching multiple Remote Desktop Connection (RDP) sessions, with credentials stored securely in Windows Credential Manager.</Description>
+    <RepositoryUrl>https://github.com/dule-jo/RDP-Vault</RepositoryUrl>
+    <PackageProjectUrl>https://github.com/dule-jo/RDP-Vault</PackageProjectUrl>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Resource Include="Assets\icon.ico" />
+  </ItemGroup>
 
 </Project>
